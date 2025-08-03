@@ -19,7 +19,7 @@
 							<li class="">{{ translate('Upload that zip file here and click update now.') }}</li>
 							<li class="">{{ translate('If you are using any addon make sure to update those addons after updating.') }}</li>
 							<li class="">{{ translate('Please turn off maintenance mode before updating.') }}</li>
-							<li class="font-weight-bold">{{ translate('You can autometically update from previous 10 (ten) version (4.3 or later).') }}</li>
+							<li class="font-weight-bold">{{ translate('You can autometically update from previous 10 (ten) version (4.4 or later).') }}</li>
 
 						</ul>
 					</div>

@@ -129,7 +129,7 @@ Route::group(['namespace' => 'Api', 'middleware' => ['app_language']], function 
 
             // PhonePe
             Route::any('pay-with-phonepe', 'PhonepeController@pay')->name('api.phonepe.pay');
-            Route::get('/phonepe-credentials', 'PhonepeController@getPhonePayCredentials')->name('api.phonepe.credentials');
+            Route::get('/phonepe-credentials', 'PhonepeController@getPhonePayCredentials')->name('api.phonepe.credentials');  
 
 
             //Instamojo

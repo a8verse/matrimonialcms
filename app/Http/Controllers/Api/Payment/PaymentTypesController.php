@@ -50,6 +50,19 @@ class PaymentTypesController extends Controller
             $payment_types[] = $payment_type;
         }
 
+         if (get_setting('razorpay_payment_activation') == 1) {
+                $payment_type = array();
+                $payment_type['payment_type'] = 'razorpay_payment';
+                $payment_type['payment_type_key'] = 'razorpay';
+                $payment_type['image'] = static_asset('assets/img/payment_method/rozarpay.png');
+                $payment_type['name'] = "Razorpay";
+                $payment_type['title'] = translate("Checkout with Razorpay");
+                $payment_type['offline_payment_id'] = 0;
+                $payment_type['details'] = "";
+
+                $payment_types[] = $payment_type;
+            }
+
         //African Payment Gateways
         if (get_setting('paytm_payment_activation') == 1) {
             $payment_type = array();

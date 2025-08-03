@@ -71,7 +71,7 @@
                                 </div>
                             </div>
                         </div>
-                    @elseif ($element->type == 'radio')
+                    @elseif ($element->type == 'radio' && is_array(json_decode($element->options)))
                         <div class="row">
                             <div class="col-md-2">
                                 <label>{{ $element->label }} <span class="text-danger">*</span></label>

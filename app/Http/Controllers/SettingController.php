@@ -220,6 +220,19 @@ class SettingController extends Controller
             }
         }
 
+          // Save phonepe_version to settings
+       if ($request->has('phonepe_version')) {
+            $phonepeVersion = Setting::where('type', 'phonepe_version')->first();
+            if ($phonepeVersion) {
+                $phonepeVersion->value = $request->phonepe_version;
+                $phonepeVersion->save();
+            } else {
+                $newSetting = new Setting();
+                $newSetting->type = 'phonepe_version';
+                $newSetting->value = $request->phonepe_version;
+                $newSetting->save();
+            }
+        }
         $payemnt_activation = Setting::where('type', $request->payment_method.'_payment_activation')->first();
         if( $payemnt_activation == null){
             $payemnt_activation =  new Setting;

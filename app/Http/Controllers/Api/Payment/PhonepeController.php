@@ -71,13 +71,22 @@ class PhonepeController extends Controller
     public function getPhonePayCredentials()
     {
 
-
-        $credentials = [
-            'merchant_id' => env('PHONEPE_MERCHANT_ID'),
-            'salt_key' => env('PHONEPE_SALT_KEY'),
-            'salt_index' => env('PHONEPE_SALT_INDEX'),
-            'mode' => get_setting('phonepe_sandbox') ? "SANDBOX" : "PRODUCTION",
-        ];
+        $version = get_setting('phonepe_version', '1');
+        if ($version == 1) {
+            $credentials = [
+                'merchant_id' => env('PHONEPE_MERCHANT_ID'),
+                'salt_key' => env('PHONEPE_SALT_KEY'),
+                'salt_index' => env('PHONEPE_SALT_INDEX'),
+                'mode' => get_setting('phonepe_sandbox') ? "SANDBOX" : "PRODUCTION",
+            ];
+        } elseif ($version == 2) {
+            $credentials = [ 
+                'mode' => get_setting('phonepe_sandbox') ? "SANDBOX" : "PRODUCTION",
+                'client_id' => env('PHONEPE_CLIENT_ID'),
+                'client_secret' => env('PHONEPE_CLIENT_SECRET'),
+                'client_version' => env('PHONEPE_CLIENT_VERSION'),
+            ];
+        }
 
         // Optionally, you can return just part of the credentials if needed
         return response()->json($credentials);

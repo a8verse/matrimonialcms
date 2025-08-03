@@ -20,7 +20,7 @@ class UpdateController extends Controller
         }
 
         $current_version = get_setting('current_version');
-        if ($current_version < 4.3) {
+        if ($current_version < 4.4) {
             flash(translate('Could not update. Please check the compatible version'))->error();
             return back();
         }
@@ -113,6 +113,7 @@ class UpdateController extends Controller
             '5.1' => 'v51.sql',
             '5.2' => 'v52.sql',
             '5.3' => 'v53.sql',
+            '5.4' => 'v54.sql',
         ];
 
         $keys = array_keys($versions);
