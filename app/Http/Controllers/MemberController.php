@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdditionalAttribute;
+use App\Models\AdditionalMemberInfo; // Added for Instagram ID
 use App\Models\Address;
 use App\Models\AnnualSalaryRange;
 use App\Models\Astrology;
 use App\Models\Attitude;
-use App\Models\Career;
+use App\Models\Career; // Make sure this is imported
 use Illuminate\Http\Request;
 use App\Models\Member;
 use App\Models\Package;
@@ -17,7 +18,7 @@ use App\Models\City;
 use App\Models\Religion;
 use App\Models\Caste;
 use App\Models\ChatThread;
-use App\Models\Education;
+use App\Models\Education; // Make sure this is imported
 use App\Models\ExpressInterest;
 use App\Models\Family;
 use App\Models\SubCaste;
@@ -28,7 +29,7 @@ use App\Models\HappyStory;
 use App\Models\Hobby;
 use App\Models\IgnoredUser;
 use App\Models\Lifestyle;
-use App\Models\MaritalStatus;
+use App\Models\MaritalStatus; // Make sure this is imported
 use App\Models\OnBehalf;
 use App\Models\PackagePayment;
 use App\Models\PartnerExpectation;
@@ -41,14 +42,16 @@ use App\Models\Shortlist;
 use App\Models\SpiritualBackground;
 use App\Models\Staff;
 use App\Models\Upload;
-use App\Models\Wallet;
 use App\Models\User;
+use Carbon\Carbon; // For age calculation
 use Hash;
 use Validator;
 use Redirect;
 use Auth;
 use App\Utility\EmailUtility;
 use App\Utility\SmsUtility;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\MembersExport;
 use MehediIitdu\CoreComponentRepository\CoreComponentRepository;
 
 class MemberController extends Controller
@@ -105,29 +108,261 @@ class MemberController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, $id)
+    public function index(Request $request, $id = null)
     {
         CoreComponentRepository::instantiateShopRepository();
         CoreComponentRepository::initializeCache();
 
-       $sort_search = null;
-        $members = User::latest()->where('user_type', 'member')->where('membership', $id);
+        $sort_search = null;
+        $members = User::where('user_type', 'member');
 
+        // Eager load relationships for all required columns
+        $members = $members->with([
+            'member',
+            'member.religion',
+            'member.caste',
+            'member.subCaste',
+            'member.maritalStatus', // RE-ENABLED HERE
+            'member.annualSalaryRange',
+            'address.country',
+            'address.state',
+            'address.city',
+            'packagePayment.package',
+            'additionalInfo',
+            'partnerExpectation.maritalStatus',
+            'partnerExpectation.caste',
+            'partnerExpectation.country',
+            'partnerExpectation.state',
+            'partnerExpectation.city',
+            'education',
+            'career',
+        ]);
+
+        // Default sorting
+        $sort_by = $request->get('sort_by', 'created_at');
+        $direction = $request->get('direction', 'asc');
+        
+        // Sorting logic
+        if ($sort_by == 'gender') {
+            $members->join('members', 'users.id', '=', 'members.user_id')->orderBy('members.gender', $direction);
+        } elseif ($sort_by == 'age') {
+            $members->join('members', 'users.id', '=', 'members.user_id')->orderByRaw("TIMESTAMPDIFF(YEAR, members.birthday, CURDATE()) {$direction}");
+        } elseif ($sort_by == 'height') {
+            $members->join('members', 'users.id', '=', 'members.user_id')->orderBy('members.height', $direction);
+        } elseif ($sort_by == 'income') {
+             $members->join('members', 'users.id', '=', 'members.user_id')
+                     ->join('annual_salary_ranges', 'members.annual_salary_range_id', '=', 'annual_salary_ranges.id')
+                     ->orderBy('annual_salary_ranges.min_salary', $direction);
+        } elseif ($sort_by == 'verification_status') {
+            $members->orderBy('approved', $direction);
+        } elseif ($sort_by == 'member_since') {
+            $members->orderBy('users.created_at', $direction);
+        } elseif ($sort_by == 'marital_status') {
+            $members->join('members', 'users.id', '=', 'members.user_id')
+                     ->leftJoin('marital_statuses', 'members.marital_status_id', '=', 'marital_statuses.id')
+                     ->orderBy('marital_statuses.name', $direction);
+        }
+        else {
+            $members->orderBy($sort_by, $direction);
+        }
+
+        // Apply membership filter only if $id is provided
+        if ($id) {
+            $members = $members->where('membership', $id);
+        }
+
+        // Filtering logic
+        if ($request->has('gender') && $request->gender != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('gender', $request->gender);
+            });
+        }
+        if ($request->has('min_height') && $request->min_height != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('height', '>=', $request->min_height);
+            });
+        }
+        if ($request->has('max_height') && $request->max_height != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('height', '<=', $request->max_height);
+            });
+        }
+        if ($request->has('min_age') && $request->min_age != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->whereRaw("TIMESTAMPDIFF(YEAR, birthday, CURDATE()) >= ?", [$request->min_age]);
+            });
+        }
+        if ($request->has('max_age') && $request->max_age != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->whereRaw("TIMESTAMPDIFF(YEAR, birthday, CURDATE()) <= ?", [$request->max_age]);
+            });
+        }
+        if ($request->has('education_id') && $request->education_id != null) {
+            $members->whereHas('education', function($q) use ($request) {
+                $q->where('education_level_id', $request->education_id);
+            });
+        }
+        if ($request->has('career_id') && $request->career_id != null) {
+            $members->whereHas('career', function($q) use ($request) {
+                $q->where('id', $request->career_id);
+            });
+        }
+        if ($request->has('income') && $request->income != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('annual_salary_range_id', $request->income);
+            });
+        }
+        if ($request->has('caste') && $request->caste != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('caste_id', $request->caste);
+            });
+        }
+        if ($request->has('religion') && $request->religion != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('religion_id', $request->religion);
+            });
+        }
+        if ($request->has('community') && $request->community != null) {
+            $members->whereHas('member', function($q) use ($request) {
+                $q->where('sub_caste_id', $request->community);
+            });
+        }
+        if ($request->has('country') && $request->country != null) {
+            $members->whereHas('address', function($q) use ($request) {
+                $q->where('country_id', $request->country);
+            });
+        }
+        if ($request->has('state') && $request->state != null) {
+            $members->whereHas('address', function($q) use ($request) {
+                $q->where('state_id', $request->state);
+            });
+        }
+        if ($request->has('city') && $request->city != null) {
+            $members->whereHas('address', function($q) use ($request) {
+                $q->where('city_id', $request->city);
+            });
+        }
+        if ($request->has('verification_status') && $request->verification_status != null) {
+            if ($request->verification_status == 'approved') {
+                $members->where('approved', 1);
+            } elseif ($request->verification_status == 'pending') {
+                $members->where('approved', 0)->whereNotNull('verification_info');
+            } elseif ($request->verification_status == 'no_request') {
+                $members->whereNull('verification_info');
+            }
+        }
+        if ($request->has('member_status') && $request->member_status != null) {
+            if ($request->member_status == 'active') {
+                $members->where('deactivated', 0)->where('blocked', 0);
+            } elseif ($request->member_status == 'deactivated') {
+                $members->where('deactivated', 1);
+            } elseif ($request->member_status == 'blocked') {
+                $members->where('blocked', 1);
+            }
+        }
+        if ($request->has('current_package') && $request->current_package != null) {
+            $members->whereHas('packagePayment.package', function($q) use ($request) {
+                $q->where('id', $request->current_package);
+            });
+        }
+        
+        // Search Logic (Fuzzy Matching by Member Code, Name, Phone, Email)
         if ($request->has('search')) {
             $sort_search = $request->search;
             $members = $members->where(function ($q) use ($sort_search) {
-                $q->where('code', $sort_search)
-                    ->orWhere('first_name', 'like', '%' . $sort_search . '%')
-                    ->orWhere('last_name', 'like', '%' . $sort_search . '%')
-                    ->orWhere('phone', 'like', '%' . $sort_search . '%')
-                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$sort_search}%"]);
+                $q->where('code', 'like', '%' . $sort_search . '%')
+                  ->orWhere('first_name', 'like', '%' . $sort_search . '%')
+                  ->orWhere('last_name', 'like', '%' . $sort_search . '%')
+                  ->orWhere('phone', 'like', '%' . $sort_search . '%')
+                  ->orWhere('email', 'like', '%' . $sort_search . '%')
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$sort_search}%"]);
             });
         }
 
-
         $members = $members->paginate(10);
-        return view('admin.members.index', compact('members', 'sort_search'));
+        
+        // Pass filter values to the view for sticky filters
+        $filters = $request->except(['_token', 'page', 'search', 'sort_by', 'direction']);
+        
+        // Get dropdown data for filters
+        $countries          = Country::where('status', 1)->get();
+        $states             = State::all();
+        $cities             = City::all();
+        $religions          = Religion::all();
+        $castes             = Caste::all();
+        $sub_castes         = SubCaste::all();
+        $educations_dropdown_data = \App\Models\Education::all();
+        $careers_dropdown_data    = \App\Models\Career::all();
+        $annual_salary_ranges = AnnualSalaryRange::orderBy('min_salary','asc')->get();
+        $marital_statuses_dropdown_data = MaritalStatus::all();
+        $packages           = Package::where('active', 1)->get();
+
+
+        return view('admin.members.index', compact(
+            'members',
+            'sort_search',
+            'sort_by',
+            'direction',
+            'filters',
+            'countries',
+            'states',
+            'cities',
+            'religions',
+            'castes',
+            'sub_castes',
+            'educations_dropdown_data',
+            'careers_dropdown_data',
+            'annual_salary_ranges',
+            'marital_statuses_dropdown_data',
+            'packages'
+        ));
     }
+
+    /**
+     * Handle member data export to Excel.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function exportMembers(Request $request)
+    {
+        $date_range = $request->input('date_range');
+        $start_date = null;
+        $end_date = null;
+
+        switch ($date_range) {
+            case 'today':
+                $start_date = Carbon::today();
+                $end_date = Carbon::now();
+                break;
+            case 'last_week':
+                $start_date = Carbon::now()->subWeek()->startOfWeek();
+                $end_date = Carbon::now()->subWeek()->endOfWeek();
+                break;
+            case 'this_month':
+                $start_date = Carbon::now()->startOfMonth();
+                $end_date = Carbon::now()->endOfMonth();
+                break;
+            case 'last_month':
+                $start_date = Carbon::now()->subMonth()->startOfMonth();
+                $end_date = Carbon::now()->subMonth()->endOfMonth();
+                break;
+            case 'last_3_months':
+                $start_date = Carbon::now()->subMonths(3)->startOfMonth();
+                $end_date = Carbon::now()->endOfMonth();
+                break;
+            case 'custom_date':
+                $start_date = Carbon::parse($request->input('start_date'));
+                $end_date = Carbon::parse($request->input('end_date'));
+                break;
+            default:
+                // No date filter, export all
+                break;
+        }
+
+        return Excel::download(new MembersExport($start_date, $end_date), 'members.xlsx');
+    }
+
 
     /**
      * Show the form for creating a new resource.
@@ -270,7 +505,7 @@ class MemberController extends Controller
             return redirect()->route('dashboard');
         }
 
-        flash(translate('Sorry! Something went wrong.'))->error();
+        flash('Sorry! Something went wrong.')->error();
         return back();
     }
 
@@ -513,7 +748,6 @@ class MemberController extends Controller
         $user->families()->delete();
         $user->partner_expectations()->delete();
         $user->spiritual_backgrounds()->delete();
-        $user->happy_story()->delete();
         $user->uploads()->delete();
         
         $chatThreads = ChatThread::where('sender_user_id', $user->id)->orWhere('receiver_user_id', $user->id)->get();
@@ -641,9 +875,9 @@ class MemberController extends Controller
         $member->remaining_interest             = $member->remaining_interest + $package->express_interest;
         $member->remaining_photo_gallery        = $member->remaining_photo_gallery + $package->photo_gallery;
         $member->remaining_contact_view         = $member->remaining_contact_view + $package->contact;
-        $member->remaining_profile_viewer_view  = $member->remaining_profile_viewer_view + $package->profile_viewers_view;
-        $member->remaining_profile_image_view   = $member->remaining_profile_image_view + $package->profile_image_view;
-        $member->remaining_gallery_image_view   = $member->remaining_gallery_image_view + $package->gallery_image_view;
+        $member->remaining_profile_viewer_view  = $package->profile_viewers_view;
+        $member->remaining_profile_image_view   = $package->profile_image_view;
+        $member->remaining_gallery_image_view   = $package->gallery_image_view;
 
         $member->auto_profile_match         = $package->auto_profile_match;
         $member->package_validity           = date('Y-m-d', strtotime($member->package_validity . ' +' . $package->validity . 'days'));
@@ -657,7 +891,7 @@ class MemberController extends Controller
                 return redirect()->route('members.index', $membership);
             }
         }
-        flash(translate('Sorry! Something went wrong.'))->error();
+        flash('Sorry! Something went wrong.')->error();
         return back();
     }
 
@@ -802,7 +1036,7 @@ class MemberController extends Controller
             flash(translate('Your account ') . $deacticvation_msg . translate(' successfully!'))->success();
             return redirect()->route('dashboard');
         }
-        flash(translate('Something Went Wrong!'))->error();
+        flash('Something Went Wrong!')->error();
         return back();
     }
     public function account_delete(Request $request)
@@ -831,7 +1065,7 @@ class MemberController extends Controller
             flash(translate('Your account has deleted successfully!'))->success();
             auth()->guard()->logout();
         }
-        flash(translate('Something Went Wrong!'))->error();
+        flash('Something Went Wrong!')->error();
         return back();
     }
 
@@ -864,7 +1098,7 @@ class MemberController extends Controller
             $query->where(function ($q) use ($sort_search) {
                 $q->where('code', $sort_search)
                 ->orWhere('first_name', 'like', '%' . $sort_search . '%')
-                ->orWhere('last_name', 'like', '%' . $sort_search . '%')
+                ->orWhere('last_name', 'like', '%' . $sort_name . '%')
                 ->orWhere('phone', 'like', '%' . $sort_search . '%')
                 ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$sort_search}%"]);
             });

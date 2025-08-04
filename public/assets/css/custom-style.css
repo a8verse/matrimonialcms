@@ -1,0 +1,76 @@
+/* Custom styles */
+
+/* Modal specific styles for Download Data popup */
+#export-modal-body {
+    max-height: 75vh !important; /* Force max-height to provide more scrollable area */
+    overflow-y: auto !important; /* Force vertical scroll */
+    padding: 20px 25px !important; /* Ensure padding consistency */
+}
+
+/* Ensure modal dialog can be wider */
+.modal-dialog {
+    max-width: 90% !important; /* Allow modal to be wider on large screens if needed */
+}
+
+/* Crucial for fixing dropdowns getting cut off within modals */
+.modal-content {
+    overflow: visible !important; /* Allows child elements (like dropdowns) to render outside modal bounds */
+}
+
+/* Table specific styles for horizontal scrolling, options visibility and header wrapping */
+.table-responsive-lg {
+    overflow-x: auto !important; /* Ensure horizontal scroll is forced */
+    min-height: 350px !important; /* Set a minimum height for the table container for options dropdowns */
+    position: relative; /* Needed for dropdown positioning to work correctly within its flow context */
+    z-index: 1; /* Ensure dropdowns appear above other elements */
+    padding-bottom: 20px; /* Add some padding at the bottom to ensure horizontal scrollbar is visible */
+}
+
+/* Ensure table itself behaves as expected with fixed layout */
+.aiz-table {
+    width: 100% !important;
+    min-width: 2000px !important; /* Increased minimum width to guarantee scrollbar and prevent column collapse */
+    table-layout: fixed; /* Helps with consistent column widths */
+
+    th, td {
+        white-space: nowrap !important; /* Force text to stay on one line in both headers and cells */
+        vertical-align: middle; /* Vertically align content */
+        padding: 0.75rem 0.5rem !important; /* Slightly reduce padding for more space if needed, force it */
+        word-break: normal !important; /* Prevent words from breaking to next line */
+        overflow: hidden !important; /* Hide overflowing content within cell */
+        text-overflow: ellipsis !important; /* Show ellipsis for overflowed text */
+    }
+    
+    /* Specific column width adjustments for better layout (adjust these as needed after testing) */
+    th:nth-child(1), td:nth-child(1) { min-width: 120px; } /* Member ID */
+    th:nth-child(2), td:nth-child(2) { min-width: 80px; } /* Image */
+    th:nth-child(3), td:nth-child(3) { min-width: 250px; } /* Your Name */
+    th:nth-child(4), td:nth-child(4) { min-width: 100px; } /* Gender */
+    th:nth-child(5), td:nth-child(5) { min-width: 140px; } /* Date of Birth */
+    th:nth-child(6), td:nth-child(6) { min-width: 80px; } /* Age */
+    th:nth-child(7), td:nth-child(7) { min-width: 160px; } /* Phone Number */
+    th:nth-child(8), td:nth-child(8) { min-width: 280px; } /* Email ID */
+    th:nth-child(9), td:nth-child(9) { min-width: 120px; } /* Height */
+    th:nth-child(10), td:nth-child(10) { min-width: 150px; } /* Religion */
+    th:nth-child(11), td:nth-child(11) { min-width: 150px; } /* Marital Status */
+    th:nth-child(12), td:nth-child(12) { min-width: 150px; } /* Caste */
+    th:nth-child(13), td:nth-child(13) { min-width: 160px; } /* Income */
+    th:nth-child(14), td:nth-child(14) { min-width: 180px; } /* Career */
+    th:nth-child(15), td:nth-child(15) { min-width: 200px; } /* Your Highest Education */
+    th:nth-child(16), td:nth-child(16) { min-width: 220px; } /* Place of Living */
+    th:nth-child(17), td:nth-child(17) { min-width: 150px; } /* Instagram ID */
+    th:nth-child(18), td:nth-child(18) { min-width: 350px; } /* Partner Expectation */
+    th:nth-child(19), td:nth-child(19) { min-width: 150px; } /* Registration Date */
+    th:nth-child(20), td:nth-child(20) { min-width: 160px; } /* Verification Status */
+    th:nth-child(21), td:nth-child(21) { min-width: 150px; } /* Member Since */
+    th:nth-child(22), td:nth-child(22) { min-width: 170px; } /* Current Package name */
+    th:nth-child(23), td:nth-child(23) { min-width: 170px; } /* Package Expiry Date */
+    th:nth-child(24), td:nth-child(24) { min-width: 220px; } /* Last Login Date & Time */
+    th:nth-child(25), td:nth-child(25) { min-width: 100px; text-align: right; } /* Options */
+
+    img.img-md { max-width: 45px !important; height: auto !important; }
+
+    /* Ensure dropdowns within the table are not cut off */
+    .dropdown-menu {
+        z-index: 1000 !important; /* Make sure the dropdown is always on top */
+    }

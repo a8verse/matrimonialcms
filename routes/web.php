@@ -46,6 +46,7 @@ use App\Http\Controllers\ViewGalleryImageController;
 use App\Http\Controllers\ViewProfilePictureController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MultiStepRegisterController; // NEW: Add the new controller
 
 
 /*
@@ -65,7 +66,28 @@ Route::controller(DemoController::class)->group(function () {
     Route::get('/demo/cron_2', 'cron_2');
 });
 
-Auth::routes();
+// Auth::routes(['verify' => true]); // Original Auth routes - Replaced with the custom ones below
+
+// Custom Auth Routes to support multi-step registration
+Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('login', [LoginController::class, 'login']);
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+Route::post('password/email', [LoginController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('password/reset/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
+Route::post('password/reset', [LoginController::class, 'reset'])->name('password.update');
+Route::get('password/confirm', [LoginController::class, 'showConfirmForm'])->name('password.confirm');
+Route::post('password/confirm', [LoginController::class, 'confirm']);
+
+// NEW: Multi-Step Registration Routes
+Route::get('register', [MultiStepRegisterController::class, 'showStep1Form'])->name('register');
+Route::post('register/step1', [MultiStepRegisterController::class, 'postStep1Form'])->name('register.step1');
+Route::get('register/step2', [MultiStepRegisterController::class, 'showStep2Form'])->name('register.step2');
+Route::post('register/step2', [MultiStepRegisterController::class, 'postStep2Form'])->name('register.step2.post');
+Route::get('register/step3', [MultiStepRegisterController::class, 'showStep3Form'])->name('register.step3');
+Route::post('register/step3', [MultiStepRegisterController::class, 'postStep3Form'])->name('register.step3.post');
+Route::get('register/step4', [MultiStepRegisterController::class, 'showStep4Form'])->name('register.step4');
+Route::post('register/finalize', [MultiStepRegisterController::class, 'finalize'])->name('register.finalize');
+// END NEW: Multi-Step Registration Routes
 
 Route::controller(HomeController::class)->group(function () {
     //Home Page
@@ -98,7 +120,6 @@ Route::controller(AizUploadController::class)->group(function () {
     Route::get('/migrate/database', 'migrate_database');
 });
 
-Auth::routes(['verify' => true]);
 Route::controller(LoginController::class)->group(function () {
     Route::get('/logout', 'logout')->name('logout');
     Route::get('/social-login/redirect/{provider}', 'redirectToProvider')->name('social.login');

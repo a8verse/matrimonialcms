@@ -48,7 +48,8 @@ use App\Http\Controllers\WalletController;
   | routes are loaded by the RouteServiceProvider within a group which
   | contains the "web" middleware group. Now create something great!
   |
- */
+ */// In routes/admin.php
+
 
 Route::controller(UpdateController::class)->group(function () {
     Route::post('/update', 'step0')->name('update');
@@ -77,7 +78,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
     // Member Manage
     Route::resource('members', MemberController::class);
     Route::controller(MemberController::class)->group(function () {
-        Route::get('/members/member_list/{id}', 'index')->name('members.index');
+        Route::get('/members/member_list/{id?}', 'index')->name('members.index');
         Route::post('/members/block', 'block')->name('members.block');
         Route::post('/members/blocking_reason', 'blocking_reason')->name('members.blocking_reason');
         Route::get('/members/login/{id}', 'login')->name('members.login');
@@ -93,7 +94,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function 
         Route::get('/member/show-verification-info/{id}', 'show_verification_info')->name('member.show_verification_info');
         Route::get('/member/approve-verification/{id}', 'approve_verification')->name('member.approve_verification');
         Route::get('/member/reject-verification/{id}', 'reject_verification')->name('member.reject_verification');
-
+Route::get('/export', [MemberController::class, 'exportMembers'])->name('members.export'); // <<-- ADD THIS LINE
 
         // member's package manage
         Route::post('/members/package_info', 'package_info')->name('members.package_info');
