@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Height;
 use App\Models\Upload;
 use App\Models\Setting;
 use App\Models\Addon;
@@ -24,6 +25,13 @@ if (!function_exists('site_url')) {
     }
 }
 
+// NEW: Helper function to get height data for the dropdown
+if (!function_exists('get_heights')) {
+    function get_heights()
+    {
+        return \App\Models\Height::orderBy('height')->get();
+    }
+}
 //highlights the selected navigation on admin panel
 if (!function_exists('areActiveRoutes')) {
     function areActiveRoutes(array $routes, $output = "active")
@@ -348,10 +356,10 @@ if (!function_exists('sendSMS')) {
                 ),
             ));
 
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
+            $response = curl_exec($ch);
+            $err = curl_error($ch);
 
-            curl_close($curl);
+            curl_close($ch);
 
             return $response;
         } elseif (get_setting('mimo_activation') == 1) {
@@ -381,6 +389,13 @@ if (!function_exists('sendSMS')) {
     }
 }
 
+
+if (!function_exists('get_heights')) {
+    function get_heights()
+    {
+        return \App\Models\Height::orderBy('height')->get();
+    }
+}
 // system configurations value
 if (!function_exists('get_remaining_package_value')) {
     function get_remaining_package_value($id, $colmn_name)

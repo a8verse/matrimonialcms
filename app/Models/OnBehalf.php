@@ -11,6 +11,6 @@ class OnBehalf extends Model
 
     public function member()
     {
-        return $this->hasmany(Member::class)->withTrashed();
+         return $this->hasMany(Member::class)->withTrashed();
     }
 }

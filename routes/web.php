@@ -46,8 +46,7 @@ use App\Http\Controllers\ViewGalleryImageController;
 use App\Http\Controllers\ViewProfilePictureController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MultiStepRegisterController; // NEW: Add the new controller
-
+use App\Http\Controllers\MultiStepRegisterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,10 +67,13 @@ Route::controller(DemoController::class)->group(function () {
 
 // Auth::routes(['verify' => true]); // Original Auth routes - Replaced with the custom ones below
 
-// Custom Auth Routes to support multi-step registration
+// Custom Auth Routes to support multi-step registration and password reset
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
+// Password reset links
+Route::get('password/reset', [LoginController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('password/email', [LoginController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('password/reset/{token}', [LoginController::class, 'showResetForm'])->name('password.reset');
 Route::post('password/reset', [LoginController::class, 'reset'])->name('password.update');
@@ -86,6 +88,8 @@ Route::post('register/step2', [MultiStepRegisterController::class, 'postStep2For
 Route::get('register/step3', [MultiStepRegisterController::class, 'showStep3Form'])->name('register.step3');
 Route::post('register/step3', [MultiStepRegisterController::class, 'postStep3Form'])->name('register.step3.post');
 Route::get('register/step4', [MultiStepRegisterController::class, 'showStep4Form'])->name('register.step4');
+Route::post('register/step4', [MultiStepRegisterController::class, 'postStep4Form'])->name('register.step4.post');
+Route::get('register/step5', [MultiStepRegisterController::class, 'showStep5Form'])->name('register.step5');
 Route::post('register/finalize', [MultiStepRegisterController::class, 'finalize'])->name('register.finalize');
 // END NEW: Multi-Step Registration Routes
 
